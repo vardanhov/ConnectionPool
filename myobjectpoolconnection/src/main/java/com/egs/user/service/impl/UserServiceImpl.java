@@ -166,12 +166,7 @@ public class UserServiceImpl implements UserService {
 
             resultSet = statement.executeQuery(GET_ALL_USER);
 
-            final List<User> users = new ArrayList<>();
-
-            while (resultSet.next()) {
-                users.add(new User(resultSet));
-            }
-            return users;
+            return getUsersFrom(resultSet);
         } catch (final SQLException ex) {
             throw new RuntimeException(ex);
         } finally {
@@ -227,7 +222,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void deleteAll() {
+    public int deleteAll() {
         Connection connection = null;
         Statement statement = null;
         try {
@@ -236,7 +231,7 @@ public class UserServiceImpl implements UserService {
 
             statement = connection.createStatement();
 
-            statement.executeUpdate(DELETE_ALL_USERS);
+            return statement.executeUpdate(DELETE_ALL_USERS);
         } catch (final SQLException ex) {
             throw new RuntimeException(ex);
         } finally {
@@ -246,18 +241,65 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<User> findBy(final List<String> ids) {
-        return null;
+        Connection connection = null;
+        Statement statement = null;
+        ResultSet resultSet = null;
+        try {
+            connection = connectionManager.getConnection();
+            connection.setReadOnly(true);
+
+            statement = connection.createStatement();
+
+            final String query = "SELECT * FROM user WHERE id in " + getIn(ids) + " AND deleted IS NULL";
+            resultSet = statement.executeQuery(query);
+
+            return getUsersFrom(resultSet);
+        } catch (final SQLException ex) {
+            throw new RuntimeException(ex);
+        } finally {
+            closeAll(resultSet, statement, connection);
+        }
     }
 
     @Override
-    public void deleteAll(final List<String> ids) {
+    public int deleteAll(final List<String> ids) {
+        Connection connection = null;
+        PreparedStatement preparedStatement = null;
+        try {
+            connection = connectionManager.getConnection();
+            connection.setReadOnly(false);
 
+            final String deleteUsers = "UPDATE user SET deleted = ? WHERE id in " + getIn(ids) + " AND deleted IS NULL";
+
+            preparedStatement = connection.prepareStatement(deleteUsers);
+            preparedStatement.setTimestamp(1, new Timestamp(new java.util.Date().getTime()));
+
+            return preparedStatement.executeUpdate();
+        } catch (final SQLException ex) {
+            throw new RuntimeException(ex);
+        } finally {
+            closeAll(null, preparedStatement, connection);
+        }
+    }
+
+    private void checkIfExistsByEmail(final String email) {
+        if (existsByEmail(email)) {
+            throw new EmailAlreadyExistException(email);
+        }
     }
 
     private void closeAll(final ResultSet resultSet, final Statement preparedStatement, final Connection connection) {
         close(resultSet);
         close(preparedStatement);
         connectionManager.releaseConnection(connection);
+    }
+
+    private static List<User> getUsersFrom(final ResultSet resultSet) throws SQLException {
+        final List<User> users = new ArrayList<>();
+        while (resultSet.next()) {
+            users.add(new User(resultSet));
+        }
+        return users;
     }
 
     private static void close(final AutoCloseable closeable) {
@@ -270,9 +312,18 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    private void checkIfExistsByEmail(final String email) {
-        if (existsByEmail(email)) {
-            throw new EmailAlreadyExistException(email);
+    private static String getIn(final List<String> ids) {
+        final StringBuilder builder = new StringBuilder();
+        builder.append("(");
+
+        final int size = ids.size();
+        for (int idx = 0; idx < size; idx++) {
+            builder.append("'").append(ids.get(idx)).append("'");
+            if (idx != size - 1) {
+                builder.append(",");
+            }
         }
+        builder.append(")");
+        return builder.toString();
     }
 }

@@ -20,9 +20,9 @@ public interface UserService {
 
     boolean existsByEmail(String email);
 
-    void deleteAll();
+    int deleteAll();
 
     List<User> findBy(List<String> ids);
 
-    void deleteAll(List<String> ids);
+    int deleteAll(List<String> ids);
 }

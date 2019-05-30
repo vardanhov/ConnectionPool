@@ -12,6 +12,8 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,7 +33,13 @@ public class ObjectPoolImplTest {
 
     @Test
     public void testCreateWithExistingEmail() {
-        // TODO: 29.05.2019
+        final User user = createUser(randomUUID(), randomUUID(), randomUUID());
+        try {
+            createUser(user.getEmail(), randomUUID(), randomUUID());
+            Assert.fail("Exception should be thrown.");
+        } catch (final EmailAlreadyExistException ex) {
+            Assert.assertEquals(user.getEmail(), ex.getEmail());
+        }
     }
 
     @Test
@@ -149,6 +157,30 @@ public class ObjectPoolImplTest {
         Assert.assertFalse(userService.existsByEmail(email));
         final User user = createUser(email, randomUUID(), randomUUID());
         Assert.assertTrue(userService.existsByEmail(user.getEmail()));
+    }
+
+    @Test
+    public void findBy() {
+        final User user1 = createUser(randomUUID(), randomUUID(), randomUUID());
+        final User user2 = createUser(randomUUID(), randomUUID(), randomUUID());
+        final User user3 = createUser(randomUUID(), randomUUID(), randomUUID());
+
+        final List<String> ids = new ArrayList<>(Arrays.asList(user1.getId(), user2.getId(), user3.getId()));
+
+        final List<User> result = userService.findBy(ids);
+        Assert.assertTrue(result.containsAll(Arrays.asList(user1, user2, user3)));
+    }
+
+    @Test
+    public void testDeleteByIds() {
+        final User user1 = createUser(randomUUID(), randomUUID(), randomUUID());
+        final User user2 = createUser(randomUUID(), randomUUID(), randomUUID());
+        final User user3 = createUser(randomUUID(), randomUUID(), randomUUID());
+
+        final List<String> ids = new ArrayList<>(Arrays.asList(user1.getId(), user2.getId(), user3.getId()));
+
+        Assert.assertEquals(ids.size(), userService.deleteAll(ids));
+        Assert.assertEquals(0, userService.findBy(ids).size());
     }
 
     private User createUser(final String email, final String firstName, final String lastName) {

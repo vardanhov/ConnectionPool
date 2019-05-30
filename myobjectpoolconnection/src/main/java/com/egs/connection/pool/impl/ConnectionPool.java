@@ -9,7 +9,7 @@ public class ConnectionPool extends ObjectPoolImpl<Connection> {
 
     private static final String PASSWORD = "root";
 
-    private static final String JDBC_DRIVER = "com.mysql.jdbc.Driver";
+    private static final String JDBC_DRIVER = "com.mysql.cj.jdbc.Driver";
 
     private static final String DB_URL = "jdbc:mysql://localhost:3306/user1_db?allowPublicKeyRetrieval=true&useSSL=false";
 
