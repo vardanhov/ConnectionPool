@@ -22,46 +22,46 @@ public class UserServiceProxyImpl implements UserService {
 
     @Override
     public User update(final UpdateUserRequest updateUserRequest) {
-        return null;
+        return userService.update(updateUserRequest);
     }
 
     @Override
     public User findById(final String id) {
-        return null;
+        return userService.findById(id);
     }
 
     @Override
     public User getById(final String id) {
-        return null;
+        return userService.getById(id);
     }
 
     @Override
     public List<User> getAll() {
-        return null;
+        return userService.getAll();
     }
 
     @Override
     public void delete(final String id) {
-
+        userService.delete(id);
     }
 
     @Override
     public boolean existsByEmail(final String email) {
-        return false;
+        return userService.existsByEmail(email);
     }
 
     @Override
     public int deleteAll() {
-        return 0;
+        return userService.deleteAll();
     }
 
     @Override
     public List<User> findBy(final List<String> ids) {
-        return null;
+        return userService.findBy(ids);
     }
 
     @Override
     public int deleteAll(final List<String> ids) {
-        return 0;
+        return userService.deleteAll(ids);
     }
 }

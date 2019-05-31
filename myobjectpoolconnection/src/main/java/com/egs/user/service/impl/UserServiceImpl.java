@@ -33,21 +33,17 @@ public class UserServiceImpl implements UserService {
 
     private final ConnectionManager connectionManager;
 
-    public UserServiceImpl() {
+    UserServiceImpl() {
         this.connectionManager = new ConnectionManagerImpl();
     }
 
     @Override
     public User create(final CreateUserRequest createUserRequest) {
-
         checkIfExistsByEmail(createUserRequest.getEmail());
-
         Connection connection = null;
         PreparedStatement preparedStatement = null;
         try {
             connection = connectionManager.getConnection();
-            connection.setReadOnly(false);
-
             preparedStatement = connection.prepareStatement(INSERT_USER);
 
             final String newId = UUID.randomUUID().toString();
@@ -62,37 +58,32 @@ public class UserServiceImpl implements UserService {
             preparedStatement.executeUpdate();
 
             final User user = new User();
-
             user.setId(newId);
             user.setEmail(createUserRequest.getEmail());
-
             user.setFirstName(createUserRequest.getFirstName());
             user.setLastName(createUserRequest.getLastName());
-
             user.setCreated(currentDate);
-
             return user;
         } catch (final SQLException ex) {
             throw new RuntimeException(ex);
         } finally {
-            closeAll(null, preparedStatement, connection);
+            closeAll(preparedStatement, connection);
         }
     }
 
     @Override
     public User update(final UpdateUserRequest updateUserRequest) {
+        Connection connection = null;
         final User user = getById(updateUserRequest.getId());
         if (!user.getEmail().equals(updateUserRequest.getEmail())) {
             checkIfExistsByEmail(updateUserRequest.getEmail());
         }
-        Connection connection = null;
+
         PreparedStatement preparedStatement = null;
         try {
             connection = connectionManager.getConnection();
-            connection.setReadOnly(false);
 
             preparedStatement = connection.prepareStatement(UPDATE_USER);
-
             final java.util.Date currentDate = new java.util.Date();
 
             preparedStatement.setString(1, updateUserRequest.getEmail());
@@ -104,13 +95,10 @@ public class UserServiceImpl implements UserService {
             preparedStatement.executeUpdate();
 
             final User result = new User();
-
             result.setId(updateUserRequest.getId());
             result.setEmail(updateUserRequest.getEmail());
-
             result.setFirstName(updateUserRequest.getFirstName());
             result.setLastName(updateUserRequest.getLastName());
-
             result.setCreated(user.getCreated());
             result.setUpdated(currentDate);
 
@@ -118,7 +106,7 @@ public class UserServiceImpl implements UserService {
         } catch (final SQLException ex) {
             throw new RuntimeException(ex);
         } finally {
-            closeAll(null, preparedStatement, connection);
+            closeAll(preparedStatement, connection);
         }
     }
 
@@ -129,7 +117,6 @@ public class UserServiceImpl implements UserService {
         ResultSet resultSet = null;
         try {
             connection = connectionManager.getConnection();
-            connection.setReadOnly(true);
 
             preparedStatement = connection.prepareStatement(GET_USER_BY_ID);
             preparedStatement.setString(1, id);
@@ -160,13 +147,13 @@ public class UserServiceImpl implements UserService {
         ResultSet resultSet = null;
         try {
             connection = connectionManager.getConnection();
-            connection.setReadOnly(true);
 
             statement = connection.createStatement();
 
             resultSet = statement.executeQuery(GET_ALL_USER);
 
-            return getUsersFrom(resultSet);
+            List<User> usersFrom = getUsersFrom(resultSet);
+            return usersFrom;
         } catch (final SQLException ex) {
             throw new RuntimeException(ex);
         } finally {
@@ -179,10 +166,8 @@ public class UserServiceImpl implements UserService {
         Connection connection = null;
         PreparedStatement preparedStatement = null;
         try {
-            connection = connectionManager.getConnection();
-            connection.setReadOnly(false);
-
             final java.util.Date currentDate = new java.util.Date();
+            connection = connectionManager.getConnection();
 
             preparedStatement = connection.prepareStatement(DELETE_USER);
             preparedStatement.setTimestamp(1, new Timestamp(currentDate.getTime()));
@@ -195,7 +180,7 @@ public class UserServiceImpl implements UserService {
         } catch (final SQLException ex) {
             throw new RuntimeException(ex);
         } finally {
-            closeAll(null, preparedStatement, connection);
+            closeAll(preparedStatement, connection);
         }
     }
 
@@ -206,7 +191,6 @@ public class UserServiceImpl implements UserService {
         ResultSet resultSet = null;
         try {
             connection = connectionManager.getConnection();
-            connection.setReadOnly(true);
 
             preparedStatement = connection.prepareStatement(GET_USER_BY_EMAIL);
             preparedStatement.setString(1, email);
@@ -227,15 +211,13 @@ public class UserServiceImpl implements UserService {
         Statement statement = null;
         try {
             connection = connectionManager.getConnection();
-            connection.setReadOnly(false);
 
             statement = connection.createStatement();
-
             return statement.executeUpdate(DELETE_ALL_USERS);
         } catch (final SQLException ex) {
             throw new RuntimeException(ex);
         } finally {
-            closeAll(null, statement, connection);
+            closeAll(statement, connection);
         }
     }
 
@@ -246,10 +228,8 @@ public class UserServiceImpl implements UserService {
         ResultSet resultSet = null;
         try {
             connection = connectionManager.getConnection();
-            connection.setReadOnly(true);
 
             statement = connection.createStatement();
-
             final String query = "SELECT * FROM user WHERE id in " + getIn(ids) + " AND deleted IS NULL";
             resultSet = statement.executeQuery(query);
 
@@ -266,10 +246,8 @@ public class UserServiceImpl implements UserService {
         Connection connection = null;
         PreparedStatement preparedStatement = null;
         try {
-            connection = connectionManager.getConnection();
-            connection.setReadOnly(false);
-
             final String deleteUsers = "UPDATE user SET deleted = ? WHERE id in " + getIn(ids) + " AND deleted IS NULL";
+            connection = connectionManager.getConnection();
 
             preparedStatement = connection.prepareStatement(deleteUsers);
             preparedStatement.setTimestamp(1, new Timestamp(new java.util.Date().getTime()));
@@ -278,7 +256,7 @@ public class UserServiceImpl implements UserService {
         } catch (final SQLException ex) {
             throw new RuntimeException(ex);
         } finally {
-            closeAll(null, preparedStatement, connection);
+            closeAll(preparedStatement, connection);
         }
     }
 
@@ -288,9 +266,13 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    private void closeAll(final ResultSet resultSet, final Statement preparedStatement, final Connection connection) {
+    private void closeAll(final Statement statement, final Connection connection) {
+        closeAll(null, statement, connection);
+    }
+
+    private void closeAll(final ResultSet resultSet, final Statement statement, final Connection connection) {
         close(resultSet);
-        close(preparedStatement);
+        close(statement);
         connectionManager.releaseConnection(connection);
     }
 

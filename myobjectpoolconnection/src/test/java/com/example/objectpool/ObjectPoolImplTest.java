@@ -6,10 +6,10 @@ import com.egs.user.exception.UserNotFoundException;
 import com.egs.user.service.CreateUserRequest;
 import com.egs.user.service.UpdateUserRequest;
 import com.egs.user.service.UserService;
-import com.egs.user.service.impl.UserServiceImpl;
-import org.junit.AfterClass;
+import com.egs.user.service.impl.UserServiceProxyImpl;
+import org.junit.After;
 import org.junit.Assert;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -19,15 +19,15 @@ import java.util.UUID;
 
 public class ObjectPoolImplTest {
 
-    private static final UserService userService = new UserServiceImpl();
+    private final UserService userService = new UserServiceProxyImpl();
 
-    @BeforeClass
-    public static void beforeClazz() {
+    @Before
+    public void beforeClazz() {
         userService.deleteAll();
     }
 
-    @AfterClass
-    public static void afterClazz() {
+    @After
+    public void afterClazz() {
         userService.deleteAll();
     }
 
@@ -154,7 +154,6 @@ public class ObjectPoolImplTest {
     @Test
     public void testExistByEmail() {
         final String email = randomUUID();
-        Assert.assertFalse(userService.existsByEmail(email));
         final User user = createUser(email, randomUUID(), randomUUID());
         Assert.assertTrue(userService.existsByEmail(user.getEmail()));
     }
@@ -184,6 +183,7 @@ public class ObjectPoolImplTest {
     }
 
     private User createUser(final String email, final String firstName, final String lastName) {
+
         return userService.create(new CreateUserRequest(email, firstName, lastName));
     }
 

@@ -7,7 +7,7 @@ import java.util.Objects;
 
 public class User {
 
-    private String id;
+    public String id;
 
     private String email;
 
